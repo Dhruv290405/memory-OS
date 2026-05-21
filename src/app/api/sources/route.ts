@@ -3,9 +3,11 @@ import { getMemoryRepository, getVectorRepository } from '@/lib/store';
 import { parseContent } from '@/lib/ingestion/parser';
 import { v4 as uuid } from 'uuid';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
     const mem = await getMemoryRepository();
+    mem.setWorkspaceContext(searchParams.get('workspaceId') || undefined);
     const sources = await mem.getAllSources();
     return Response.json({ sources, total: sources.length });
   } catch (error) {

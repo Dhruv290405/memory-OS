@@ -7,16 +7,20 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Source } from '@/types';
 import { formatDateTime, truncate } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
+import { getWorkspaceId } from '@/lib/workspace/WorkspaceContext';
 
 export default function SourcesPage() {
   const [sources, setSources] = useState<Source[]>([]);
   const [loading, setLoading] = useState(true);
   const [showIngest, setShowIngest] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', type: 'markdown', content: '', author: '' });
 
   const fetchSources = () => {
     setLoading(true);
-    fetch('/api/sources')
+    const ws = getWorkspaceId();
+    fetch(`/api/sources${ws ? `?workspaceId=${ws}` : ''}`)
       .then((r) => r.json())
       .then((data) => {
         setSources(data.sources || []);
@@ -36,7 +40,7 @@ export default function SourcesPage() {
       const res = await fetch('/api/ingest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, workspaceId: getWorkspaceId() }),
       });
 
       if (res.ok) {
@@ -82,22 +86,38 @@ export default function SourcesPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {sources.map((source) => (
-              <Card key={source.id} hover>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <CardTitle>{source.name}</CardTitle>
-                    <Badge variant="outline" label={source.type} small />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-white/40 mb-3 line-clamp-2">{truncate(source.content, 200)}</p>
-                  <div className="flex items-center justify-between text-[11px] text-white/30">
-                    <span>{source.author}</span>
-                    <span>{formatDateTime(source.timestamp)}</span>
-                    <span>{source.eventCount} events</span>
-                  </div>
-                </CardContent>
-              </Card>
+              <div key={source.id}>
+                <Card hover onClick={() => setExpanded(expanded === source.id ? null : source.id)}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <CardTitle>{source.name}</CardTitle>
+                      <Badge variant="outline" label={source.type} small />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-white/40 mb-3 line-clamp-2">{truncate(source.content, 200)}</p>
+                    <div className="flex items-center justify-between text-[11px] text-white/30">
+                      <span>{source.author}</span>
+                      <span>{formatDateTime(source.timestamp)}</span>
+                      <span>{source.eventCount} events</span>
+                    </div>
+                  </CardContent>
+                </Card>
+                <AnimatePresence>
+                  {expanded === source.id && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="rounded-b-xl border-x border-b border-white/[0.06] bg-white/[0.01] p-4 -mt-1 mb-4">
+                        <p className="text-xs text-white/70 leading-relaxed whitespace-pre-wrap">{source.content}</p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             ))}
           </div>
         )}

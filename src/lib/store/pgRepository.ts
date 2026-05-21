@@ -1,4 +1,4 @@
-import { MemoryEvent, Entity, Relation, Source, Tag, QueryLog, ConversationMessage } from '@/types';
+import { MemoryEvent, Entity, Relation, Source, Tag, QueryLog, ConversationMessage, Workspace } from '@/types';
 import { IMemoryRepository } from './interfaces';
 
 const PRISMA_MODULE = ['@', 'prisma', '/', 'client'].join('');
@@ -127,6 +127,31 @@ export class PostgresRepository implements IMemoryRepository {
   }
 
   async clear(): Promise<void> {
-    return this.withClient(async (c) => { await c.conversationMessage.deleteMany(); await c.queryLog.deleteMany(); await c.relation.deleteMany(); await c.entity.deleteMany(); await c.memoryEvent.deleteMany(); await c.source.deleteMany(); await c.tag.deleteMany(); });
+    return this.withClient(async (c) => { await c.conversationMessage.deleteMany(); await c.queryLog.deleteMany(); await c.relation.deleteMany(); await c.entity.deleteMany(); await c.memoryEvent.deleteMany(); await c.source.deleteMany(); await c.tag.deleteMany(); await c.workspace.deleteMany(); });
+  }
+
+  setWorkspaceContext(workspaceId?: string): void {}
+
+  async getWorkspaces(): Promise<Workspace[]> {
+    return this.withClient((c) => c.workspace.findMany({ orderBy: { createdAt: 'asc' } }));
+  }
+
+  async addWorkspace(workspace: Workspace): Promise<void> {
+    return this.withClient((c) => c.workspace.create({ data: workspace }));
+  }
+
+  async updateWorkspace(id: string, name: string): Promise<void> {
+    return this.withClient((c) => c.workspace.update({ where: { id }, data: { name, updatedAt: new Date() } }));
+  }
+
+  async deleteWorkspace(id: string): Promise<void> {
+    return this.withClient(async (c) => {
+      await c.memoryEvent.deleteMany({ where: { workspaceId: id } });
+      await c.entity.deleteMany({ where: { workspaceId: id } });
+      await c.source.deleteMany({ where: { workspaceId: id } });
+      await c.tag.deleteMany({ where: { workspaceId: id } });
+      await c.queryLog.deleteMany({ where: { workspaceId: id } });
+      await c.workspace.delete({ where: { id } });
+    });
   }
 }

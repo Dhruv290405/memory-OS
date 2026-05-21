@@ -19,7 +19,8 @@ export type EntityType =
   | 'issue'
   | 'outcome'
   | 'team'
-  | 'system';
+  | 'system'
+  | 'feature';
 
 export type RelationType =
   | 'influences'
@@ -49,6 +50,7 @@ export interface MemoryEvent {
   embedding?: number[];
   metadata?: Record<string, string>;
   createdAt: string;
+  workspaceId?: string;
 }
 
 export interface Entity {
@@ -58,6 +60,7 @@ export interface Entity {
   description: string;
   metadata?: Record<string, string>;
   createdAt: string;
+  workspaceId?: string;
 }
 
 export interface Relation {
@@ -79,6 +82,7 @@ export interface Source {
   timestamp: string;
   eventCount: number;
   createdAt: string;
+  workspaceId?: string;
 }
 
 export interface Tag {
@@ -99,4 +103,11 @@ export interface QueryLog {
 export interface ConversationMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
+}
+
+export interface Workspace {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
 }

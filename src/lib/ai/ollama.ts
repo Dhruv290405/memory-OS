@@ -10,7 +10,7 @@ export class OllamaClient {
   private model: string;
   private available = false;
 
-  constructor(model = 'llama3.2:3b') {
+  constructor(model = 'llama3.2:1b') {
     this.model = model;
   }
 
@@ -19,11 +19,10 @@ export class OllamaClient {
       const res = await fetch(`${OLLAMA_BASE}/api/tags`);
       if (res.ok) {
         const data = await res.json();
-        const hasModel = data.models?.some((m: { name: string }) =>
+        this.available = data.models?.some((m: { name: string }) =>
           m.name.startsWith(this.model)
-        );
-        this.available = true;
-        return true;
+        ) ?? false;
+        return this.available;
       }
     } catch {
       this.available = false;
@@ -64,71 +63,125 @@ export class OllamaClient {
   }
 
   private fallbackResponse(prompt: string): string {
-    const lines = prompt.split('\n').filter((l) => l.trim());
-    const lastLine = lines[lines.length - 1] || '';
-    if (lastLine.toLowerCase().includes('question')) {
-      return this.generateMockAnswer(prompt);
-    }
     return this.generateMockAnswer(prompt);
   }
 
   private generateMockAnswer(prompt: string): string {
-    const hasMemoryContext = prompt.includes('MEMORY CONTEXT') || prompt.includes('Memory Context');
-    if (!hasMemoryContext) {
-      return 'I can help you explore the organizational memory. Please ask a specific question about decisions, events, or entities in the workspace. I can provide information about architecture decisions, meeting outcomes, security issues, and project timelines.';
-    }
+    const events = this.parseMemoryEvents(prompt);
 
-    const memorySections = prompt.match(/\[(\d+)\][\s\S]*?(?=\n\[|\n\n|$)/g);
-    const memoryCount = memorySections?.length || 0;
-
-    if (memoryCount === 0) {
+    if (events.length === 0) {
       return 'I found no relevant memory events matching your query. Try rephrasing your question or broadening the search terms.';
     }
 
-    return `Based on the retrieved memory events, here is what I found:
-
-${this.extractRelevantAnswer(prompt)}`;
+    const answer = this.buildAnswerFromEvents(events, prompt);
+    return `Based on the retrieved memory events, here is what I found:\n\n${answer}`;
   }
 
-  private extractRelevantAnswer(prompt: string): string {
-    const contextMatch = prompt.match(/MEMORY CONTEXT:([\s\S]*?)(?:\n\n|\n#|$)/);
-    const context = contextMatch ? contextMatch[1].trim() : '';
+  private parseMemoryEvents(prompt: string): Array<{
+    index: number;
+    title: string;
+    type: string;
+    author: string;
+    date: string;
+    summary: string;
+    content: string;
+    tags: string[];
+    entities: string[];
+    importance: number;
+  }> {
+    const blockPattern = /\[(\d+)\]\s*Title:\s*([^\n]*)\s*Type:\s*([^\n]*)\s*Author:\s*([^\n]*)\s*Date:\s*([^\n]*)\s*Summary:\s*([^\n]*?)(?=\s*Content:|$)/g;
+    const contentPattern = /Content:\s*([^\n]*?)(?=\s*Tags:|$)/;
+    const tagPattern = /Tags:\s*([^\n]*)/;
+    const entityPattern = /Entities:\s*([^\n]*)/;
+    const importancePattern = /Importance:\s*(\d+)/;
 
-    const lower = prompt.toLowerCase();
+    const events: Array<{
+      index: number; title: string; type: string; author: string; date: string;
+      summary: string; content: string; tags: string[]; entities: string[]; importance: number;
+    }> = [];
 
-    if (lower.includes('grpc') || lower.includes('rpc')) {
-      return 'The team migrated to gRPC for inter-service communication as part of the microservices architecture. Charlie Wang implemented the gRPC service mesh (commit on Oct 21). The migration timeline was confirmed during the Q3 performance review and is on track for completion by end of Q4. This decision directly supports the performance optimization priority set during Q4 planning.';
+    let match: RegExpExecArray | null;
+    while ((match = blockPattern.exec(prompt)) !== null) {
+      const block = match[0];
+      const contentMatch = block.match(contentPattern);
+      const tagMatch = block.match(tagPattern);
+      const entityMatch = block.match(entityPattern);
+      const importanceMatch = block.match(importancePattern);
+
+      events.push({
+        index: parseInt(match[1]),
+        title: match[2].trim(),
+        type: match[3].trim(),
+        author: match[4].trim(),
+        date: match[5].trim(),
+        summary: match[6].trim(),
+        content: contentMatch ? contentMatch[1].trim() : '',
+        tags: tagMatch ? tagMatch[1].split(',').map((t) => t.trim()) : [],
+        entities: entityMatch ? entityMatch[1].split(',').map((e) => e.trim()) : [],
+        importance: importanceMatch ? parseInt(importanceMatch[1]) : 0,
+      });
     }
 
-    if (lower.includes('database') || lower.includes('performance') || lower.includes('latency')) {
-      return 'Database performance has been a significant concern. A 300% latency increase was identified after a schema change in Q3. Bob Martinez was assigned to lead the database optimization sprint. Additionally, the team adopted a CQRS pattern with hybrid persistence (PostgreSQL for transactions, MongoDB for events) to improve write throughput by 60%. Connection pool exhaustion caused a major outage on Oct 12, which was resolved by reducing max connections and adding middleware.';
+    return events;
+  }
+
+  private buildAnswerFromEvents(
+    events: Array<{ index: number; title: string; summary: string; content: string; importance: number; type: string; author: string; tags: string[]; entities: string[]; date: string }>,
+    prompt: string
+  ): string {
+    const questionMatch = prompt.match(/USER QUESTION:\s*(.+?)(?:\n|$)/);
+    const question = questionMatch ? questionMatch[1].trim() : '';
+    const qLower = question.toLowerCase();
+
+    const qWords = question.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+
+    const scored = events.map((e) => {
+      let score = e.importance;
+      const text = (e.title + ' ' + e.summary + ' ' + e.content + ' ' + e.tags.join(' ') + ' ' + e.entities.join(' ')).toLowerCase();
+      for (const w of qWords) {
+        const count = (text.match(new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
+        score += count;
+      }
+      return { ...e, score };
+    });
+    scored.sort((a, b) => b.score - a.score);
+
+    const top = scored[0];
+    const others = scored.slice(1, 4);
+
+    const lines: string[] = [];
+
+    const isWhat = /^(what|how)\b/i.test(question);
+    const isWhy = /^why\b/i.test(question);
+    const isWho = /^who\b/i.test(question);
+    const isWhen = /^when\b/i.test(question);
+
+    if (top) {
+      if (isWho) {
+        lines.push(`${top.author} is associated with "${top.title}".`);
+        const involved = [...new Set(scored.filter((e) => e.author).map((e) => e.author))];
+        if (involved.length > 1) lines.push(`Others involved: ${involved.filter((a) => a !== top.author).join(', ')}`);
+      } else {
+        lines.push(top.summary);
+      }
+      lines.push(`(Source [${top.index}]: ${top.title})`);
     }
 
-    if (lower.includes('security') || lower.includes('jwt') || lower.includes('vulnerability')) {
-      return 'Two significant security issues were identified: 1) JWT token rotation was not implemented (critical severity, must be addressed by Oct 15). 2) API rate limiting was missing on auth endpoints. Diana Park led the security audit that identified these issues. As a result, rate limiting middleware was added to the API gateway, and the team decided to migrate secrets from environment files to HashiCorp Vault.';
-    }
-
-    if (lower.includes('outage') || lower.includes('incident') || lower.includes('downtime')) {
-      return 'A service outage occurred on October 12 affecting the Payment Service. Root cause was database connection pool exhaustion (configured at max 50 connections, causing starvation under load). Bob Martinez led the response. Resolution included reducing max connections to 20, adding connection pooling middleware, and planning implementation of a circuit breaker pattern to prevent future cascading failures.';
-    }
-
-    if (lower.includes('microservice') || lower.includes('architecture') || lower.includes('monolith')) {
-      return 'The team decided to migrate from a monolithic architecture to 5 microservices (Auth, Payment, Inventory, Notification, Gateway) to address scaling bottlenecks and a 45-minute deployment pipeline. Alice Chen proposed this architecture decision. Key architectural choices include: Kong API Gateway for routing and rate limiting, gRPC for inter-service communication, CQRS pattern with PostgreSQL + MongoDB for persistence, and dedicated team ownership per service. The migration introduces operational complexity but enables faster independent deployments.';
-    }
-
-    if (lower.includes('decision') || lower.includes('why')) {
-      const refs = context.match(/- .+?\(Source:.+?\)/g);
-      if (refs && refs.length > 0) {
-        return `Looking at the relevant memory events, here is the context:\n\n${refs.slice(0, 3).join('\n')}\n\nThe key decisions were driven by the need for scalability, performance, and security compliance. Each decision includes rationale from discussions, meeting outcomes, and identified risks.`;
+    if (others.length > 0) {
+      lines.push('');
+      lines.push(`Related:`);
+      for (const e of others) {
+        lines.push(`  [${e.index}] ${e.title}`);
       }
     }
 
-    return `I found ${this.countMemoryRefs(prompt)} relevant memory events related to your question. The information covers architectural decisions, performance metrics, security findings, and team assignments. Let me know if you need more specific details about any of these areas.`;
-  }
+    const allEntities = [...new Set(scored.flatMap((e) => e.entities))];
+    if (allEntities.length > 0) {
+      lines.push('');
+      lines.push(`Key entities: ${allEntities.join(', ')}`);
+    }
 
-  private countMemoryRefs(prompt: string): number {
-    const matches = prompt.match(/\[(\d+)\]/g);
-    return matches ? matches.length : 0;
+    return lines.join('\n');
   }
 }
 

@@ -2,9 +2,11 @@ import { NextRequest } from 'next/server';
 import { getMemoryRepository } from '@/lib/store';
 import { getEventTypeColor } from '@/lib/utils';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
     const mem = await getMemoryRepository();
+    mem.setWorkspaceContext(searchParams.get('workspaceId') || undefined);
     const events = await mem.getAllMemoryEvents();
     const entities = await mem.getAllEntities();
     const tags = await mem.getAllTags();

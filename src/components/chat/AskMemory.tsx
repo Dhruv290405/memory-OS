@@ -14,7 +14,11 @@ interface Message {
   followUps?: string[];
 }
 
-export function AskMemoryChat() {
+interface AskMemoryChatProps {
+  workspaceId?: string;
+}
+
+export function AskMemoryChat({ workspaceId }: AskMemoryChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,7 +38,7 @@ export function AskMemoryChat() {
       const res = await fetch('/api/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, conversationId }),
+        body: JSON.stringify({ query, conversationId, workspaceId }),
       });
 
       if (res.ok) {

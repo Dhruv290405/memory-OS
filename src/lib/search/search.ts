@@ -7,6 +7,7 @@ export interface SearchOptions {
   source?: string;
   tag?: string;
   limit?: number;
+  workspaceId?: string;
 }
 
 export interface SearchResultItem {
@@ -16,8 +17,9 @@ export interface SearchResultItem {
 }
 
 export async function hybridSearch(options: SearchOptions): Promise<SearchResultItem[]> {
-  const { q, type, source, tag, limit = 10 } = options;
+  const { q, type, source, tag, limit = 10, workspaceId } = options;
   const mem = await getMemoryRepository();
+  if (workspaceId) mem.setWorkspaceContext(workspaceId);
   const vec = await getVectorRepository();
 
   let results = await mem.searchEvents(q, { type, source, tag });

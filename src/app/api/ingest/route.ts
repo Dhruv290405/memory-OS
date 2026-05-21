@@ -6,7 +6,7 @@ import { parseContent } from '@/lib/ingestion/parser';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { content, type, name, author, timestamp } = body;
+    const { content, type, name, author, timestamp, workspaceId } = body;
 
     if (!content || !type || !name) {
       return Response.json(
@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     const mem = await getMemoryRepository();
+    if (workspaceId) mem.setWorkspaceContext(workspaceId);
     const vec = await getVectorRepository();
     const { source, events } = parseContent(content, type, name, author, timestamp);
 

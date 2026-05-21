@@ -4,7 +4,7 @@ import { askMemory } from '@/lib/ai/rag';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { query, conversationId } = body;
+    const { query, conversationId, workspaceId } = body;
 
     if (!query || typeof query !== 'string') {
       return Response.json(
@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
       query,
       conversationId,
       topK: 8,
+      workspaceId,
     });
 
     return Response.json(result);

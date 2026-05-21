@@ -9,8 +9,9 @@ export async function GET(request: NextRequest) {
     const source = searchParams.get('source') || undefined;
     const tag = searchParams.get('tag') || undefined;
     const limit = parseInt(searchParams.get('limit') || '10', 10);
+    const workspaceId = searchParams.get('workspaceId') || undefined;
 
-    const results = await hybridSearch({ q, type, source, tag, limit });
+    const results = await hybridSearch({ q, type, source, tag, limit, workspaceId });
 
     return Response.json({ results, total: results.length, query: q });
   } catch (error) {

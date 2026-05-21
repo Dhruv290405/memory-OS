@@ -42,6 +42,11 @@ async function loadSqliteRepositories(dbPath?: string): Promise<{
   };
 }
 
+async function ensureDataSeeded(): Promise<void> {
+  const { initializeMemoryOS } = await import('@/lib/init');
+  await initializeMemoryOS();
+}
+
 export async function getMemoryRepository(): Promise<IMemoryRepository> {
   if (!memoryRepo) {
     if (config.backend === 'postgres') {
@@ -55,6 +60,7 @@ export async function getMemoryRepository(): Promise<IMemoryRepository> {
     }
     await memoryRepo.initialize();
     initialized = true;
+    await ensureDataSeeded();
   }
   return memoryRepo;
 }

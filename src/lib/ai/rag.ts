@@ -19,6 +19,7 @@ export interface RAGOptions {
   query: string;
   conversationId?: string;
   topK?: number;
+  workspaceId?: string;
 }
 
 const FOLLOW_UP_TEMPLATES = [
@@ -31,8 +32,9 @@ const FOLLOW_UP_TEMPLATES = [
 
 export async function askMemory(options: RAGOptions): Promise<RAGResult> {
   const convId = options.conversationId || `conv-${uuid().slice(0, 8)}`;
-  const { query, topK = 8 } = options;
+  const { query, topK = 8, workspaceId } = options;
   const mem = await getMemoryRepository();
+  if (workspaceId) mem.setWorkspaceContext(workspaceId);
   const vec = await getVectorRepository();
 
   const keywordResults = await mem.searchEvents(query);
@@ -71,6 +73,7 @@ Type: ${e.event.type}
 Author: ${e.event.author}
 Date: ${new Date(e.event.timestamp).toLocaleDateString()}
 Summary: ${e.event.summary}
+Content: ${e.event.content.slice(0, 500)}
 Tags: ${e.event.tags.join(', ')}
 Entities: ${e.event.entities.join(', ')}
 Importance: ${e.event.importance}/10

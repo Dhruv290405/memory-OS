@@ -5,13 +5,15 @@ import { MetricsGrid } from '@/components/dashboard/MetricsGrid';
 import { Badge } from '@/components/ui/Badge';
 import { getEventTypeColor } from '@/lib/utils';
 import { SpendChart } from '@/components/dashboard/SpendChart';
+import { getWorkspaceId } from '@/lib/workspace/WorkspaceContext';
 
 export default function InsightsPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/insights')
+    const ws = getWorkspaceId();
+    fetch(`/api/insights${ws ? `?workspaceId=${ws}` : ''}`)
       .then((r) => r.json())
       .then(setData)
       .finally(() => setLoading(false));

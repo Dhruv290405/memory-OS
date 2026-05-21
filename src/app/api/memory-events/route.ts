@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50', 10);
 
     const mem = await getMemoryRepository();
+    mem.setWorkspaceContext(searchParams.get('workspaceId') || undefined);
     let events = await mem.getAllMemoryEvents();
 
     if (type) events = events.filter((e) => e.type === type);

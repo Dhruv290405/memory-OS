@@ -27,6 +27,7 @@ export function getEntityTypeColor(type: string): string {
     outcome: '#14b8a6',
     team: '#ec4899',
     system: '#6366f1',
+    feature: '#06b6d4',
   };
   return colors[type] || '#6b7280';
 }

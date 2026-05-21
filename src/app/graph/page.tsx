@@ -3,13 +3,15 @@ import { useEffect, useState } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { KnowledgeGraph } from '@/components/graph/KnowledgeGraph';
 import { GraphData } from '@/types';
+import { getWorkspaceId } from '@/lib/workspace/WorkspaceContext';
 
 export default function GraphPage() {
   const [graphData, setGraphData] = useState<GraphData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/graph')
+    const ws = getWorkspaceId();
+    fetch(`/api/graph${ws ? `?workspaceId=${ws}` : ''}`)
       .then((r) => r.json())
       .then((data) => {
         setGraphData(data);

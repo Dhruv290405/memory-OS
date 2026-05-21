@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '100', 10);
 
     const mem = await getMemoryRepository();
+    mem.setWorkspaceContext(searchParams.get('workspaceId') || undefined);
     let events = await mem.getAllMemoryEvents();
 
     if (type) events = events.filter((e: any) => e.type === type);

@@ -1,10 +1,11 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { TimelineReplay } from '@/components/timeline/TimelineReplay';
 import { TimelineItem } from '@/types';
 import { getEventTypeColor } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
+import { getWorkspaceId } from '@/lib/workspace/WorkspaceContext';
 
 type EventType = TimelineItem['type'];
 
@@ -16,7 +17,9 @@ export default function TimelinePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const url = filter !== 'all' ? `/api/timeline?type=${filter}` : '/api/timeline';
+    const ws = getWorkspaceId();
+    const base = filter !== 'all' ? `/api/timeline?type=${filter}` : '/api/timeline';
+    const url = ws ? `${base}${base.includes('?') ? '&' : '?'}workspaceId=${ws}` : base;
     fetch(url)
       .then((r) => r.json())
       .then((data) => {

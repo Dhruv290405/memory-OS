@@ -155,6 +155,82 @@ The connection pool was configured too aggressively (max 50), causing starvation
       eventCount: 4,
       createdAt: daysAgo(10),
     },
+    {
+      id: 'src-8',
+      name: 'MemoryOS Architecture Documentation',
+      type: 'markdown',
+      content: `# MemoryOS Architecture
+
+MemoryOS is a local-first AI organizational memory platform built with Next.js 16, TypeScript, and Tailwind CSS.
+
+## Tech Stack
+- Frontend: Next.js 16, React 19, TypeScript, Tailwind CSS
+- State/Visualization: @xyflow/react (ReactFlow), framer-motion, recharts
+- Storage: better-sqlite3 (local-first), optional PostgreSQL
+- AI: Ollama for local LLM inference and embeddings
+- Search: Hybrid keyword + vector search
+
+## Features
+- Knowledge Graph: Entity-relationship visualization using ReactFlow with dagre auto-layout
+- Ask Memory: Conversational RAG with cited sources
+- Insight Dashboard: Aggregated analytics with charts and metrics
+- Timeline Replay: Chronological history with type filtering
+- Ingestion Pipeline: Parses markdown, JSON, text, chat exports, commit logs`,
+      author: 'Development Team',
+      timestamp: daysAgo(90),
+      eventCount: 4,
+      createdAt: daysAgo(90),
+    },
+    {
+      id: 'src-9',
+      name: 'Knowledge Graph Feature Specification',
+      type: 'markdown',
+      content: `# Knowledge Graph Feature
+
+The Knowledge Graph visualizes entities and their relationships as an interactive directed graph.
+
+## Components
+- ReactFlow for canvas rendering with zoom, pan, and minimap
+- dagre (directed graph layout engine) for automatic node positioning
+- Entity type color-coding (people, systems, technologies)
+- Relationship arrows with type labels
+- MiniMap for navigation
+
+## Data Model
+- Nodes represent entities (people, systems, technologies)
+- Edges represent relationships (influences, depends_on, implements, mentions)
+- Node importance is determined by connection count`,
+      author: 'Development Team',
+      timestamp: daysAgo(85),
+      eventCount: 4,
+      createdAt: daysAgo(85),
+    },
+    {
+      id: 'src-10',
+      name: 'Insights and Analytics Dashboard Documentation',
+      type: 'markdown',
+      content: `# Insights Dashboard and Timeline
+
+The Insights Dashboard provides aggregated analytics across all memory events.
+
+## Dashboard Metrics
+- Total memory events, entities tracked, relationships, data sources
+- Event type distribution with color-coded bars
+- Top topics by tag frequency
+- High priority events (importance >= 8)
+- Most connected entities (by relationship count)
+- Event timeline chart (monthly event counts)
+- Average importance score and unique authors
+
+## Timeline Replay
+- Chronological list of all memory events
+- Filter by event type (decision, meeting, discussion, issue, etc.)
+- Expandable items showing related entities`,
+      author: 'Development Team',
+      timestamp: daysAgo(80),
+      eventCount: 4,
+      createdAt: daysAgo(80),
+    },
   ];
 }
 
@@ -460,6 +536,156 @@ export function getDemoMemoryEvents(): MemoryEvent[] {
       importance: 6,
       createdAt: daysAgo(14),
     },
+    {
+      id: 'evt-21',
+      type: 'architecture',
+      sourceId: 'src-8',
+      sourceType: 'markdown',
+      title: 'Architecture: MemoryOS Platform Overview',
+      summary: 'MemoryOS built with Next.js 16, React 19, TypeScript, and Tailwind CSS as a local-first AI organizational memory platform.',
+      content: 'MemoryOS is a local-first AI organizational memory platform. The frontend uses Next.js 16 with React 19 and TypeScript. Styling uses Tailwind CSS with a dark theme. Data persistence uses better-sqlite3 locally with optional PostgreSQL. The AI layer uses Ollama for local LLM inference and text embeddings. Search combines keyword matching with vector similarity.',
+      author: 'Development Team',
+      timestamp: daysAgo(90),
+      tags: ['architecture', 'nextjs', 'typescript', 'tailwind', 'memoryos'],
+      entities: ['MemoryOS', 'Next.js', 'SQLite', 'Ollama'],
+      importance: 9,
+      createdAt: daysAgo(90),
+    },
+    {
+      id: 'evt-22',
+      type: 'decision',
+      sourceId: 'src-8',
+      sourceType: 'markdown',
+      title: 'Decision: Use ReactFlow for Knowledge Graph Visualization',
+      summary: 'Chose @xyflow/react (ReactFlow) with dagre auto-layout for the knowledge graph entity-relationship visualization.',
+      content: 'The team selected ReactFlow for the interactive knowledge graph visualization because of its support for directed graphs, minimap, zoom/pan controls, and dark mode. The dagre library provides automatic hierarchical layout so nodes are positioned cleanly without manual placement. Nodes are color-coded by entity type and edges show relationship labels.',
+      author: 'Development Team',
+      timestamp: daysAgo(85),
+      tags: ['decision', 'knowledge-graph', 'reactflow', 'visualization', 'dagre'],
+      entities: ['MemoryOS', 'Knowledge Graph', 'ReactFlow', 'dagre'],
+      importance: 8,
+      createdAt: daysAgo(85),
+    },
+    {
+      id: 'evt-23',
+      type: 'decision',
+      sourceId: 'src-8',
+      sourceType: 'markdown',
+      title: 'Decision: Use SQLite for Local-First Data Persistence',
+      summary: 'Chose better-sqlite3 as the default storage backend for zero-setup local persistence.',
+      content: 'SQLite via better-sqlite3 was chosen as the default storage backend because it requires no server setup, keeps data in a single file, and supports the full SQL feature set. The repository pattern allows swapping to PostgreSQL for production deployments. Tables include memory_events, entities, relations, sources, tags, query_logs, and conversation_messages.',
+      author: 'Development Team',
+      timestamp: daysAgo(88),
+      tags: ['decision', 'database', 'sqlite', 'persistence', 'storage'],
+      entities: ['MemoryOS', 'SQLite'],
+      importance: 8,
+      createdAt: daysAgo(88),
+    },
+    {
+      id: 'evt-24',
+      type: 'outcome',
+      sourceId: 'src-9',
+      sourceType: 'markdown',
+      title: 'Feature: Knowledge Graph with Entity Relationship Visualization',
+      summary: 'The Knowledge Graph page displays entities as color-coded nodes with directed relationship edges using ReactFlow and dagre.',
+      content: 'The Knowledge Graph feature provides an interactive visualization of all entities and their relationships. It uses ReactFlow for the canvas with zoom, pan, minimap, and controls. dagre computes automatic node positions in a left-to-right hierarchical layout. Each node is color-coded by entity type (person, system, technology) and each edge shows the relationship type with an arrow. The page also lists all entities and relationships below the graph.',
+      author: 'Development Team',
+      timestamp: daysAgo(82),
+      tags: ['feature', 'knowledge-graph', 'reactflow', 'visualization', 'entities'],
+      entities: ['MemoryOS', 'Knowledge Graph', 'ReactFlow', 'dagre'],
+      importance: 9,
+      createdAt: daysAgo(82),
+    },
+    {
+      id: 'evt-25',
+      type: 'outcome',
+      sourceId: 'src-10',
+      sourceType: 'markdown',
+      title: 'Feature: Insight Dashboard with Metrics and Analytics',
+      summary: 'The Insight Dashboard shows aggregated metrics, event type distribution, top topics, high priority events, and event timeline chart.',
+      content: 'The Insights Dashboard provides analytics across all memory events. It displays total counts for events, entities, relations, and sources. Event type distribution is shown as a color-coded bar chart. Top topics are ranked by tag frequency. High priority events (importance >= 8) are listed. Most connected entities are shown with their connection counts. A monthly event timeline chart visualizes activity over time.',
+      author: 'Development Team',
+      timestamp: daysAgo(78),
+      tags: ['feature', 'insights', 'dashboard', 'analytics', 'metrics'],
+      entities: ['MemoryOS', 'Insights Dashboard'],
+      importance: 8,
+      createdAt: daysAgo(78),
+    },
+    {
+      id: 'evt-26',
+      type: 'outcome',
+      sourceId: 'src-8',
+      sourceType: 'markdown',
+      title: 'Feature: Ask Memory Conversational RAG',
+      summary: 'The Ask Memory feature provides conversational Q&A over organizational memory using hybrid search and optional LLM generation.',
+      content: 'Ask Memory is a conversational RAG (Retrieval-Augmented Generation) feature. When a user asks a question, it searches memory events using hybrid keyword and vector search, retrieves the top relevant events, constructs them as context, and sends to Ollama (if available) for answer generation. Answers include cited source references with relevance scores and confidence levels. Follow-up suggestions are provided.',
+      author: 'Development Team',
+      timestamp: daysAgo(75),
+      tags: ['feature', 'ask-memory', 'rag', 'search', 'ai', 'qa'],
+      entities: ['MemoryOS', 'Ask Memory', 'Ollama', 'RAG Pipeline'],
+      importance: 9,
+      createdAt: daysAgo(75),
+    },
+    {
+      id: 'evt-27',
+      type: 'outcome',
+      sourceId: 'src-10',
+      sourceType: 'markdown',
+      title: 'Feature: Timeline Replay with Type Filtering',
+      summary: 'The Timeline page shows all memory events in chronological order with filtering by event type.',
+      content: 'The Timeline Replay feature displays memory events sorted by date with expandable details. Users can filter by event type (decision, discussion, meeting, issue, risk, outcome, commit, note, architecture). Each event shows its title, type badge, author, date, and related entities.',
+      author: 'Development Team',
+      timestamp: daysAgo(72),
+      tags: ['feature', 'timeline', 'replay', 'chronological', 'history'],
+      entities: ['MemoryOS', 'Timeline Replay'],
+      importance: 7,
+      createdAt: daysAgo(72),
+    },
+    {
+      id: 'evt-28',
+      type: 'architecture',
+      sourceId: 'src-8',
+      sourceType: 'markdown',
+      title: 'Architecture: Hybrid Search Pipeline',
+      summary: 'MemoryOS uses hybrid search combining keyword-based matching with vector similarity search for memory retrieval.',
+      content: 'The search pipeline first runs keyword search across memory events by tokenizing the query and scoring matches in title, summary, content, tags, and entities. If keyword results are insufficient, vector search falls back to embedding similarity using Ollama nomic-embed-text or a deterministic hash-based embedding. Results are merged, deduplicated, and ranked by relevance score.',
+      author: 'Development Team',
+      timestamp: daysAgo(70),
+      tags: ['architecture', 'search', 'hybrid', 'retrieval', 'embedding'],
+      entities: ['MemoryOS', 'RAG Pipeline', 'Ollama'],
+      importance: 8,
+      createdAt: daysAgo(70),
+    },
+    {
+      id: 'evt-29',
+      type: 'architecture',
+      sourceId: 'src-8',
+      sourceType: 'markdown',
+      title: 'Architecture: Ingestion Pipeline for Multiple Formats',
+      summary: 'The ingestion pipeline parses markdown, JSON, text, transcripts, chat exports, and commit logs into structured memory events.',
+      content: 'The ingestion pipeline accepts markdown, JSON, plain text, meeting transcripts, chat exports, and commit logs. Documents are parsed into typed memory events with auto-extracted tags, entities, and importance scores. Each source can produce multiple events and is stored with metadata including author and timestamp.',
+      author: 'Development Team',
+      timestamp: daysAgo(68),
+      tags: ['architecture', 'ingestion', 'parsing', 'pipeline'],
+      entities: ['MemoryOS', 'Ingestion Pipeline'],
+      importance: 7,
+      createdAt: daysAgo(68),
+    },
+    {
+      id: 'evt-30',
+      type: 'decision',
+      sourceId: 'src-8',
+      sourceType: 'markdown',
+      title: 'Decision: Use Ollama for Local AI Inference',
+      summary: 'Chose Ollama for running LLMs and embedding models locally without external API dependencies.',
+      content: 'Ollama was selected for local AI inference to keep all data processing private and offline-capable. It provides both text generation (using llama3.2:3b or similar models) and text embeddings (using nomic-embed-text). When Ollama is unavailable, the system falls back to deterministic mock answers for Q&A and hash-based simulated embeddings for vector search.',
+      author: 'Development Team',
+      timestamp: daysAgo(65),
+      tags: ['decision', 'ollama', 'ai', 'llm', 'embeddings', 'privacy'],
+      entities: ['MemoryOS', 'Ollama', 'RAG Pipeline'],
+      importance: 9,
+      createdAt: daysAgo(65),
+    },
   ];
 }
 
@@ -480,6 +706,16 @@ export function getDemoEntities(): Entity[] {
     { id: 'ent-13', name: 'JWT', type: 'technology', description: 'JSON Web Token authentication', createdAt: daysAgo(20) },
     { id: 'ent-14', name: 'HashiCorp Vault', type: 'technology', description: 'Secrets management system', createdAt: daysAgo(19) },
     { id: 'ent-15', name: 'Kong', type: 'technology', description: 'API Gateway platform', createdAt: daysAgo(118) },
+    { id: 'ent-16', name: 'MemoryOS', type: 'system', description: 'AI organizational memory platform', createdAt: daysAgo(90) },
+    { id: 'ent-17', name: 'Knowledge Graph', type: 'feature', description: 'Interactive entity-relationship visualization', createdAt: daysAgo(85) },
+    { id: 'ent-18', name: 'Insights Dashboard', type: 'feature', description: 'Analytics dashboard with metrics and charts', createdAt: daysAgo(80) },
+    { id: 'ent-19', name: 'Timeline Replay', type: 'feature', description: 'Chronological event history with type filtering', createdAt: daysAgo(75) },
+    { id: 'ent-20', name: 'Ask Memory', type: 'feature', description: 'Conversational RAG Q&A over organizational memory', createdAt: daysAgo(75) },
+    { id: 'ent-21', name: 'Ingestion Pipeline', type: 'system', description: 'Parses documents into structured memory events', createdAt: daysAgo(70) },
+    { id: 'ent-22', name: 'RAG Pipeline', type: 'system', description: 'Retrieval-augmented generation for question answering', createdAt: daysAgo(75) },
+    { id: 'ent-23', name: 'Next.js', type: 'technology', description: 'React framework for the frontend application', createdAt: daysAgo(90) },
+    { id: 'ent-24', name: 'ReactFlow', type: 'technology', description: 'Interactive graph visualization library', createdAt: daysAgo(85) },
+    { id: 'ent-25', name: 'dagre', type: 'technology', description: 'Directed graph layout engine for node positioning', createdAt: daysAgo(85) },
   ];
 }
 
@@ -500,6 +736,16 @@ export function getDemoRelations(): Relation[] {
     { id: 'rel-13', sourceId: 'ent-9', targetId: 'ent-7', type: 'depends_on', description: 'PostgreSQL supports Payment Service', weight: 9, createdAt: daysAgo(60) },
     { id: 'rel-14', sourceId: 'ent-1', targetId: 'ent-2', type: 'mentions', description: 'Alice assigned database sprint to Bob', weight: 6, createdAt: daysAgo(45) },
     { id: 'rel-15', sourceId: 'ent-15', targetId: 'ent-8', type: 'implements', description: 'Kong powers the API Gateway', weight: 8, createdAt: daysAgo(118) },
+    { id: 'rel-16', sourceId: 'ent-16', targetId: 'ent-17', type: 'implements', description: 'MemoryOS has a Knowledge Graph feature', weight: 9, createdAt: daysAgo(85) },
+    { id: 'rel-17', sourceId: 'ent-16', targetId: 'ent-18', type: 'implements', description: 'MemoryOS has an Insights Dashboard', weight: 8, createdAt: daysAgo(80) },
+    { id: 'rel-18', sourceId: 'ent-16', targetId: 'ent-19', type: 'implements', description: 'MemoryOS has a Timeline Replay feature', weight: 7, createdAt: daysAgo(75) },
+    { id: 'rel-19', sourceId: 'ent-16', targetId: 'ent-20', type: 'implements', description: 'MemoryOS has an Ask Memory feature', weight: 9, createdAt: daysAgo(75) },
+    { id: 'rel-20', sourceId: 'ent-16', targetId: 'ent-21', type: 'implements', description: 'MemoryOS has an Ingestion Pipeline', weight: 8, createdAt: daysAgo(70) },
+    { id: 'rel-21', sourceId: 'ent-17', targetId: 'ent-24', type: 'depends_on', description: 'Knowledge Graph uses ReactFlow for rendering', weight: 9, createdAt: daysAgo(85) },
+    { id: 'rel-22', sourceId: 'ent-17', targetId: 'ent-25', type: 'depends_on', description: 'Knowledge Graph uses dagre for layout', weight: 8, createdAt: daysAgo(85) },
+    { id: 'rel-23', sourceId: 'ent-20', targetId: 'ent-22', type: 'depends_on', description: 'Ask Memory uses the RAG Pipeline', weight: 9, createdAt: daysAgo(75) },
+    { id: 'rel-24', sourceId: 'ent-16', targetId: 'ent-23', type: 'depends_on', description: 'MemoryOS is built on Next.js', weight: 9, createdAt: daysAgo(90) },
+    { id: 'rel-25', sourceId: 'ent-16', targetId: 'ent-8', type: 'influences', description: 'MemoryOS exposes an API', weight: 6, createdAt: daysAgo(88) },
   ];
 }
 
@@ -521,6 +767,16 @@ export function getDemoTags(): Tag[] {
     { id: 'commit', name: 'commit', count: 2 },
     { id: 'outcome', name: 'outcome', count: 2 },
     { id: 'note', name: 'note', count: 1 },
+    { id: 'memoryos', name: 'memoryos', count: 10 },
+    { id: 'knowledge-graph', name: 'knowledge-graph', count: 3 },
+    { id: 'reactflow', name: 'reactflow', count: 3 },
+    { id: 'rag', name: 'rag', count: 2 },
+    { id: 'ollama', name: 'ollama', count: 3 },
+    { id: 'feature', name: 'feature', count: 4 },
+    { id: 'analytics', name: 'analytics', count: 1 },
+    { id: 'ingestion', name: 'ingestion', count: 2 },
+    { id: 'visualization', name: 'visualization', count: 2 },
+    { id: 'ai', name: 'ai', count: 2 },
   ];
 }
 

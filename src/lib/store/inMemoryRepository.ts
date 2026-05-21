@@ -1,4 +1,4 @@
-import { MemoryEvent, Entity, Relation, Source, Tag, QueryLog, ConversationMessage } from '@/types';
+import { MemoryEvent, Entity, Relation, Source, Tag, QueryLog, ConversationMessage, Workspace } from '@/types';
 import { IMemoryRepository } from './interfaces';
 
 export class InMemoryRepository implements IMemoryRepository {
@@ -9,45 +9,68 @@ export class InMemoryRepository implements IMemoryRepository {
   private tags: Map<string, Tag> = new Map();
   private queryLogs: Map<string, QueryLog> = new Map();
   private conversations: Map<string, ConversationMessage[]> = new Map();
+  private workspaces: Map<string, Workspace> = new Map();
+  private workspaceId: string | undefined;
 
   async initialize(): Promise<void> {}
 
+  setWorkspaceContext(workspaceId?: string): void {
+    this.workspaceId = workspaceId;
+  }
+
   getAllMemoryEvents(): MemoryEvent[] {
-    return Array.from(this.memoryEvents.values()).sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
+    let entries = Array.from(this.memoryEvents.values());
+    if (this.workspaceId) entries = entries.filter((e) => e.workspaceId === this.workspaceId);
+    return entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }
 
   getMemoryEvent(id: string): MemoryEvent | undefined {
-    return this.memoryEvents.get(id);
+    const e = this.memoryEvents.get(id);
+    if (e && this.workspaceId && e.workspaceId !== this.workspaceId) return undefined;
+    return e;
   }
 
   addMemoryEvent(event: MemoryEvent): void {
-    this.memoryEvents.set(event.id, event);
+    this.memoryEvents.set(event.id, { ...event, workspaceId: event.workspaceId || this.workspaceId || 'default' });
   }
 
   addMemoryEvents(events: MemoryEvent[]): void {
-    events.forEach((e) => this.memoryEvents.set(e.id, e));
+    const wsId = this.workspaceId || 'default';
+    events.forEach((e) => this.memoryEvents.set(e.id, { ...e, workspaceId: e.workspaceId || wsId }));
   }
 
   getAllEntities(): Entity[] {
-    return Array.from(this.entities.values());
+    let entries = Array.from(this.entities.values());
+    if (this.workspaceId) entries = entries.filter((e: any) => e.workspaceId === this.workspaceId);
+    return entries;
   }
 
   getEntity(id: string): Entity | undefined {
-    return this.entities.get(id);
+    const e = this.entities.get(id);
+    if (e && this.workspaceId && (e as any).workspaceId !== this.workspaceId) return undefined;
+    return e;
   }
 
   addEntity(entity: Entity): void {
-    this.entities.set(entity.id, entity);
+    this.entities.set(entity.id, { ...entity, workspaceId: (entity as any).workspaceId || this.workspaceId || 'default' });
   }
 
   addEntities(entities: Entity[]): void {
-    entities.forEach((e) => this.entities.set(e.id, e));
+    const wsId = this.workspaceId || 'default';
+    entities.forEach((e) => this.entities.set(e.id, { ...e, workspaceId: (e as any).workspaceId || wsId }));
   }
 
   getAllRelations(): Relation[] {
-    return Array.from(this.relations.values());
+    let entries = Array.from(this.relations.values());
+    if (this.workspaceId) {
+      const entityIds = new Set(
+        Array.from(this.entities.values())
+          .filter((e: any) => e.workspaceId === this.workspaceId)
+          .map((e) => e.id)
+      );
+      entries = entries.filter((r) => entityIds.has(r.sourceId) && entityIds.has(r.targetId));
+    }
+    return entries;
   }
 
   addRelation(relation: Relation): void {
@@ -59,30 +82,35 @@ export class InMemoryRepository implements IMemoryRepository {
   }
 
   getAllSources(): Source[] {
-    return Array.from(this.sources.values()).sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
+    let entries = Array.from(this.sources.values());
+    if (this.workspaceId) entries = entries.filter((s: any) => s.workspaceId === this.workspaceId);
+    return entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }
 
   getSource(id: string): Source | undefined {
-    return this.sources.get(id);
+    const s = this.sources.get(id);
+    if (s && this.workspaceId && (s as any).workspaceId !== this.workspaceId) return undefined;
+    return s;
   }
 
   addSource(source: Source): void {
-    this.sources.set(source.id, source);
+    this.sources.set(source.id, { ...source, workspaceId: (source as any).workspaceId || this.workspaceId || 'default' });
   }
 
   getAllTags(): Tag[] {
-    return Array.from(this.tags.values()).sort((a, b) => b.count - a.count);
+    let entries = Array.from(this.tags.values());
+    if (this.workspaceId) entries = entries.filter((t: any) => t.workspaceId === this.workspaceId);
+    return entries.sort((a, b) => b.count - a.count);
   }
 
   incrementTag(name: string): void {
-    const existing = this.tags.get(name);
+    const key = `${this.workspaceId || 'default'}:${name}`;
+    const existing = this.tags.get(key);
     if (existing) {
       existing.count += 1;
-      this.tags.set(name, existing);
     } else {
-      this.tags.set(name, { id: name, name, count: 1 });
+      const tag: Tag & { workspaceId: string } = { id: key, name, count: 1, workspaceId: this.workspaceId || 'default' };
+      this.tags.set(key, tag);
     }
   }
 
@@ -122,16 +150,20 @@ export class InMemoryRepository implements IMemoryRepository {
 
     if (!query) return results.slice(0, 50);
 
+    const tokens = q.split(/\s+/).filter((t) => t.length > 2);
+
+    if (tokens.length === 0) return [];
+
     return results
       .map((event) => ({
         event,
-        score:
-          (event.title.toLowerCase().includes(q) ? 10 : 0) +
-          (event.summary.toLowerCase().includes(q) ? 5 : 0) +
-          (event.content.toLowerCase().includes(q) ? 3 : 0) +
-          (event.tags.some((t) => t.toLowerCase().includes(q)) ? 4 : 0) +
-          (event.entities.some((e) => e.toLowerCase().includes(q)) ? 4 : 0) +
-          (event.author.toLowerCase().includes(q) ? 2 : 0),
+        score: tokens.reduce((acc, token) => acc +
+          (event.title.toLowerCase().includes(token) ? 2 : 0) +
+          (event.summary.toLowerCase().includes(token) ? 1 : 0) +
+          (event.content.toLowerCase().includes(token) ? 1 : 0) +
+          (event.tags.some((t) => t.toLowerCase().includes(token)) ? 2 : 0) +
+          (event.entities.some((e) => e.toLowerCase().includes(token)) ? 2 : 0) +
+          (event.author.toLowerCase().includes(token) ? 1 : 0), 0),
       }))
       .filter((r) => r.score > 0)
       .sort((a, b) => b.score - a.score)
@@ -147,5 +179,33 @@ export class InMemoryRepository implements IMemoryRepository {
     this.tags.clear();
     this.queryLogs.clear();
     this.conversations.clear();
+    this.workspaces.clear();
+  }
+
+  getWorkspaces(): Workspace[] {
+    return Array.from(this.workspaces.values()).sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  }
+
+  addWorkspace(workspace: Workspace): void {
+    this.workspaces.set(workspace.id, workspace);
+  }
+
+  updateWorkspace(id: string, name: string): void {
+    const ws = this.workspaces.get(id);
+    if (ws) {
+      ws.name = name;
+      ws.updatedAt = new Date().toISOString();
+      this.workspaces.set(id, ws);
+    }
+  }
+
+  deleteWorkspace(id: string): void {
+    this.workspaces.delete(id);
+    for (const [key, e] of this.memoryEvents) { if ((e as any).workspaceId === id) this.memoryEvents.delete(key); }
+    for (const [key, e] of this.entities) { if ((e as any).workspaceId === id) this.entities.delete(key); }
+    for (const [key, s] of this.sources) { if ((s as any).workspaceId === id) this.sources.delete(key); }
+    for (const [key] of this.tags) { if (key.startsWith(`${id}:`)) this.tags.delete(key); }
   }
 }

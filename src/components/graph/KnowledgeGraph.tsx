@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import {
   ReactFlow,
   Background,
@@ -15,58 +15,66 @@ import '@xyflow/react/dist/style.css';
 import { motion } from 'framer-motion';
 import { GraphData } from '@/types';
 import { getEntityTypeColor } from '@/lib/utils';
+import dagre from 'dagre';
 
 interface KnowledgeGraphProps {
   data: GraphData;
 }
 
-export function KnowledgeGraph({ data }: KnowledgeGraphProps) {
-  const initialNodes: Node[] = useMemo(
-    () =>
-      data.nodes.map((node) => ({
-        id: node.id,
-        type: 'default',
-        position: { x: 0, y: 0 },
-        data: {
-          label: node.label,
-        },
-        style: {
-          background: `${getEntityTypeColor(node.type)}20`,
-          border: `1px solid ${getEntityTypeColor(node.type)}40`,
-          color: '#fff',
-          borderRadius: '12px',
-          padding: '10px 16px',
-          fontSize: '13px',
-          fontWeight: 500,
-          minWidth: 100,
-          textAlign: 'center' as const,
-        },
-      })),
-    [data.nodes]
-  );
+function layoutNodes(nodes: Node[], edges: Edge[]): Node[] {
+  const g = new dagre.graphlib.Graph();
+  g.setGraph({ rankdir: 'LR', nodesep: 80, ranksep: 120, marginx: 40, marginy: 40 });
+  g.setDefaultEdgeLabel(() => ({}));
 
-  const initialEdges: Edge[] = useMemo(
-    () =>
-      data.edges.map((edge) => ({
-        id: edge.id,
-        source: edge.source,
-        target: edge.target,
-        label: edge.label,
-        style: { stroke: 'rgba(255,255,255,0.15)', strokeWidth: 1.5 },
-        labelStyle: { fill: 'rgba(255,255,255,0.4)', fontSize: 10 },
-        markerEnd: { type: MarkerType.ArrowClosed, color: 'rgba(255,255,255,0.2)' },
-      })),
-    [data.edges]
-  );
+  nodes.forEach((node) => g.setNode(node.id, { width: 140, height: 50 }));
+  edges.forEach((edge) => g.setEdge(edge.source, edge.target));
+
+  dagre.layout(g);
+
+  return nodes.map((node) => {
+    const pos = g.node(node.id);
+    return {
+      ...node,
+      position: { x: pos.x - 70, y: pos.y - 25 },
+    };
+  });
+}
+
+export function KnowledgeGraph({ data }: KnowledgeGraphProps) {
+  const { initialNodes, initialEdges } = useMemo(() => {
+    const nodes: Node[] = data.nodes.map((node) => ({
+      id: node.id,
+      type: 'default',
+      position: { x: 0, y: 0 },
+      data: { label: node.label, type: node.type },
+      style: {
+        background: `${getEntityTypeColor(node.type)}20`,
+        border: `1px solid ${getEntityTypeColor(node.type)}40`,
+        color: '#fff',
+        borderRadius: '12px',
+        padding: '10px 16px',
+        fontSize: '13px',
+        fontWeight: 500,
+        minWidth: 100,
+        textAlign: 'center' as const,
+      },
+    }));
+
+    const edges: Edge[] = data.edges.map((edge) => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      label: edge.label,
+      style: { stroke: 'rgba(255,255,255,0.15)', strokeWidth: 1.5 },
+      labelStyle: { fill: 'rgba(255,255,255,0.4)', fontSize: 10 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: 'rgba(255,255,255,0.2)' },
+    }));
+
+    return { initialNodes: layoutNodes(nodes, edges), initialEdges: edges };
+  }, [data]);
 
   const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, , onEdgesChange] = useEdgesState(initialEdges);
-
-  const onInit = useCallback((instance: any) => {
-    setTimeout(() => {
-      instance.fitView({ padding: 0.3, duration: 800 });
-    }, 200);
-  }, []);
 
   if (data.nodes.length === 0) {
     return (
@@ -92,7 +100,6 @@ export function KnowledgeGraph({ data }: KnowledgeGraphProps) {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        onInit={onInit}
         fitView
         colorMode="dark"
         proOptions={{ hideAttribution: true }}

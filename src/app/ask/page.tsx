@@ -3,12 +3,13 @@ import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
 import { AskMemoryChat } from '@/components/chat/AskMemory';
+import { getWorkspaceId } from '@/lib/workspace/WorkspaceContext';
 
 function AskContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q');
 
-  return <AskMemoryChat key={initialQuery || 'default'} />;
+  return <AskMemoryChat key={initialQuery || 'default'} workspaceId={getWorkspaceId()} />;
 }
 
 export default function AskPage() {
