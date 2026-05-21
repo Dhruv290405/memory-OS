@@ -1,7 +1,7 @@
 FROM node:20-bookworm-slim
 
 # Install Ollama
-RUN apt-get update && apt-get install -y curl
+RUN apt-get update && apt-get install -y curl zstd
 RUN curl -fsSL https://ollama.com/install.sh | sh
 
 WORKDIR /app
