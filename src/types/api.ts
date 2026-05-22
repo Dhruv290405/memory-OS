@@ -48,6 +48,7 @@ export interface AskResponse {
   confidence: number;
   followUpSuggestions: string[];
   conversationId: string;
+  aiAvailable?: boolean;
 }
 
 export interface InsightMetric {

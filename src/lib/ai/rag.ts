@@ -13,6 +13,7 @@ export interface RAGResult {
   confidence: number;
   followUpSuggestions: string[];
   conversationId: string;
+  aiAvailable: boolean;
 }
 
 export interface RAGOptions {
@@ -135,5 +136,6 @@ Answer the question based on the memory events above. Cite sources as [1], [2], 
     confidence,
     followUpSuggestions: followUps,
     conversationId: convId,
+    aiAvailable: ollamaClient.isAvailable(),
   };
 }

@@ -23,6 +23,7 @@ export function AskMemoryChat({ workspaceId }: AskMemoryChatProps) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -42,8 +43,9 @@ export function AskMemoryChat({ workspaceId }: AskMemoryChatProps) {
       });
 
       if (res.ok) {
-        const data: AskResponse & { conversationId: string } = await res.json();
+        const data: AskResponse & { conversationId: string; aiAvailable: boolean } = await res.json();
         setConversationId(data.conversationId);
+        if (data.aiAvailable !== undefined) setAiAvailable(data.aiAvailable);
         setMessages((prev) => [
           ...prev,
           {
@@ -84,6 +86,12 @@ export function AskMemoryChat({ workspaceId }: AskMemoryChatProps) {
 
   return (
     <div className="flex flex-col h-[calc(100vh-12rem)]">
+      {aiAvailable === false && (
+        <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400">
+          <span>⚡</span>
+          <span>AI inference unavailable in deployed mode — using keyword-based fallback</span>
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-thin">
         {messages.length === 0 && (
           <div className="flex items-center justify-center h-full">
