@@ -1,17 +1,35 @@
-const sessions = new Map<string, { userId: string; username: string; createdAt: string }>();
+import { getDatabase } from '@/lib/store/sharedDb';
+import Database from 'better-sqlite3';
 
-export function createSession(userId: string, username: string, token: string): void {
-  sessions.set(token, { userId, username, createdAt: new Date().toISOString() });
+function ensureTable(db: Database.Database): void {
+  db.exec(`CREATE TABLE IF NOT EXISTS sessions (
+    token TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    username TEXT NOT NULL,
+    createdAt TEXT NOT NULL
+  )`);
+}
+
+export function createSession(token: string, userId: string, username: string): void {
+  const db = getDatabase();
+  ensureTable(db);
+  db.prepare('INSERT OR REPLACE INTO sessions (token, userId, username, createdAt) VALUES (?,?,?,?)').run(token, userId, username, new Date().toISOString());
 }
 
 export function getSession(token: string): { userId: string; username: string; createdAt: string } | undefined {
-  return sessions.get(token);
+  const db = getDatabase();
+  ensureTable(db);
+  return db.prepare('SELECT * FROM sessions WHERE token = ?').get(token) as any;
 }
 
 export function deleteSession(token: string): void {
-  sessions.delete(token);
+  const db = getDatabase();
+  ensureTable(db);
+  db.prepare('DELETE FROM sessions WHERE token = ?').run(token);
 }
 
 export function clearSessions(): void {
-  sessions.clear();
+  const db = getDatabase();
+  ensureTable(db);
+  db.exec('DELETE FROM sessions');
 }
