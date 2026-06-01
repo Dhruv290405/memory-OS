@@ -84,6 +84,9 @@ export class SqliteRepository implements IMemoryRepository {
         id TEXT PRIMARY KEY, username TEXT UNIQUE NOT NULL, passwordHash TEXT NOT NULL,
         displayName TEXT NOT NULL, createdAt TEXT NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS sessions (
+        token TEXT PRIMARY KEY, userId TEXT NOT NULL, username TEXT NOT NULL, createdAt TEXT NOT NULL
+      );
     `);
     this.migrateSchema();
     try {
