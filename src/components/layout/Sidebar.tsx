@@ -12,6 +12,7 @@ const navItems = [
   { href: '/timeline', label: 'Timeline', icon: '⊡' },
   { href: '/insights', label: 'Insights', icon: '⊞' },
   { href: '/sources', label: 'Sources', icon: '⊟' },
+  { href: '/ingest', label: 'Ingest', icon: '⊜' },
   { href: '/settings', label: 'Settings', icon: '⚙' },
 ];
 
@@ -24,6 +25,7 @@ export function Sidebar() {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showPrefs, setShowPrefs] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [compact, setCompact] = useState(false);
@@ -31,6 +33,14 @@ export function Sidebar() {
   useEffect(() => {
     setTheme((localStorage.getItem('memoryos_theme') as 'dark' | 'light') || 'dark');
     setCompact(localStorage.getItem('memoryos_compact') === 'true');
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSidebarOpen(false);
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
   }, []);
 
   const toggleTheme = () => {
@@ -97,18 +107,45 @@ main input { background: rgba(0,0,0,0.05) !important; color: #111827 !important;
     : 'WS';
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-56 border-r border-white/[0.06] bg-[#080812] z-40 flex flex-col">
-      <div className="px-5 py-5 border-b border-white/[0.06]">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
-            M
-          </div>
-          <div>
-            <span className="text-white font-semibold text-sm">MemoryOS</span>
-            <span className="block text-[10px] text-white/30 font-mono">v0.1.0</span>
-          </div>
-        </Link>
-      </div>
+    <>
+      <button
+        onClick={() => setSidebarOpen(true)}
+        className="fixed top-4 left-4 z-50 lg:hidden w-10 h-10 rounded-lg bg-[#080812] border border-white/[0.06] flex items-center justify-center text-white/70 hover:text-white transition-colors"
+        aria-label="Open sidebar"
+      >
+        <span className="text-lg">☰</span>
+      </button>
+
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <aside
+        className={`fixed left-0 top-0 bottom-0 w-64 lg:w-56 border-r border-white/[0.06] bg-[#080812] z-40 flex flex-col transition-transform duration-300 ease-in-out ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } lg:translate-x-0`}
+      >
+        <div className="flex items-center justify-between px-5 py-5 border-b border-white/[0.06]">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
+              M
+            </div>
+            <div>
+              <span className="text-white font-semibold text-sm">MemoryOS</span>
+              <span className="block text-[10px] text-white/30 font-mono">v0.1.0</span>
+            </div>
+          </Link>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden text-white/30 hover:text-white/70 text-lg leading-none p-1"
+            aria-label="Close sidebar"
+          >
+            ✕
+          </button>
+        </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1">
         {navItems.map((item) => {
@@ -254,6 +291,17 @@ main input { background: rgba(0,0,0,0.05) !important; color: #111827 !important;
                   )}
                 </AnimatePresence>
                 <button
+                  onClick={() => {
+                    localStorage.removeItem('memoryos_token');
+                    localStorage.removeItem('memoryos_user');
+                    window.location.href = '/login';
+                  }}
+                  className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                >
+                  <span className="text-[10px]">↩</span>
+                  <span>Logout</span>
+                </button>
+                <button
                   onClick={async () => {
                     setWorkspaceOpen(false);
                     const ws = localStorage.getItem('memoryos_active_workspace');
@@ -271,11 +319,31 @@ main input { background: rgba(0,0,0,0.05) !important; color: #111827 !important;
                   <span className="text-[10px]">↓</span>
                   <span>Export Data</span>
                 </button>
+                <button
+                  onClick={async () => {
+                    setWorkspaceOpen(false);
+                    const ws = localStorage.getItem('memoryos_active_workspace');
+                    const res = await fetch(`/api/backup${ws ? `?workspaceId=${ws}` : ''}`);
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                    a.href = url;
+                    a.download = `memoryos-backup-${ts}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs text-white/50 hover:text-white/80 hover:bg-white/[0.04] transition-colors"
+                >
+                  <span className="text-[10px]">⬆</span>
+                  <span>Create Backup</span>
+                </button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
     </aside>
+    </>
   );
 }

@@ -105,9 +105,18 @@ export interface ConversationMessage {
   content: string;
 }
 
+export interface User {
+  id: string;
+  username: string;
+  passwordHash: string;
+  displayName: string;
+  createdAt: string;
+}
+
 export interface Workspace {
   id: string;
   name: string;
   createdAt: string;
   updatedAt: string;
+  userId?: string;
 }

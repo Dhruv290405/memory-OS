@@ -1,5 +1,6 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { motion } from 'framer-motion';
 import { WorkspaceProvider } from '@/lib/workspace/WorkspaceContext';
@@ -25,6 +26,18 @@ interface AppShellProps {
 }
 
 export function AppShell({ children }: AppShellProps) {
+  const router = useRouter();
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem('memoryos_token');
+    if (!token) {
+      router.push('/login');
+    } else {
+      setChecking(false);
+    }
+  }, [router]);
+
   useEffect(() => {
     const theme = localStorage.getItem('memoryos_theme') || 'dark';
     const compact = localStorage.getItem('memoryos_compact') === 'true';
@@ -43,11 +56,13 @@ export function AppShell({ children }: AppShellProps) {
     };
   }, []);
 
+  if (checking) return null;
+
   return (
     <WorkspaceProvider>
       <div className="min-h-screen">
         <Sidebar />
-        <main className="pl-56 min-h-screen">
+        <main className="pl-0 lg:pl-56 min-h-screen">
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}

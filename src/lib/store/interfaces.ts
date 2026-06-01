@@ -1,4 +1,4 @@
-import { MemoryEvent, Entity, Relation, Source, Tag, QueryLog, ConversationMessage, Workspace } from '@/types/memory';
+import { MemoryEvent, Entity, Relation, Source, Tag, QueryLog, ConversationMessage, Workspace, User } from '@/types/memory';
 
 export interface IMemoryRepository {
   initialize(): Promise<void>;
@@ -40,6 +40,11 @@ export interface IMemoryRepository {
   addWorkspace(workspace: Workspace): void | Promise<void>;
   updateWorkspace(id: string, name: string): void | Promise<void>;
   deleteWorkspace(id: string): void | Promise<void>;
+
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: User): Promise<void>;
+  validatePassword(username: string, password: string): Promise<User | null>;
+  getWorkspacesByUser(userId: string): Promise<Workspace[]>;
 }
 
 export interface IVectorRepository {

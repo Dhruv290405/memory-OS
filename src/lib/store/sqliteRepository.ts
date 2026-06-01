@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
-import { MemoryEvent, Entity, Relation, Source, Tag, QueryLog, ConversationMessage, Workspace } from '@/types';
+import crypto from 'crypto';
+import { MemoryEvent, Entity, Relation, Source, Tag, QueryLog, ConversationMessage, Workspace, User } from '@/types';
 import { IMemoryRepository } from './interfaces';
 import { getDatabase } from './sharedDb';
 
@@ -79,8 +80,15 @@ export class SqliteRepository implements IMemoryRepository {
       CREATE INDEX IF NOT EXISTS idx_rels_source ON relations(sourceId);
       CREATE INDEX IF NOT EXISTS idx_rels_target ON relations(targetId);
       CREATE INDEX IF NOT EXISTS idx_conv_id ON conversation_messages(conversationId);
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY, username TEXT UNIQUE NOT NULL, passwordHash TEXT NOT NULL,
+        displayName TEXT NOT NULL, createdAt TEXT NOT NULL
+      );
     `);
     this.migrateSchema();
+    try {
+      this.getDb().exec("ALTER TABLE workspaces ADD COLUMN userId TEXT DEFAULT ''");
+    } catch {}
   }
 
   private wsFilter(): string {
@@ -291,5 +299,24 @@ export class SqliteRepository implements IMemoryRepository {
 
   private mapEvent(row: any): MemoryEvent {
     return { id: row.id, type: row.type, sourceId: row.sourceId, sourceType: row.sourceType, title: row.title, summary: row.summary, content: row.content, author: row.author, timestamp: row.timestamp, tags: JSON.parse(row.tags || '[]'), entities: JSON.parse(row.entities || '[]'), importance: row.importance, metadata: row.metadata ? JSON.parse(row.metadata) : undefined, createdAt: row.createdAt };
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return this.getDb().prepare('SELECT * FROM users WHERE username = ?').get(username) as User | undefined;
+  }
+
+  async createUser(user: User): Promise<void> {
+    this.getDb().prepare('INSERT INTO users (id,username,passwordHash,displayName,createdAt) VALUES(?,?,?,?,?)').run(user.id, user.username, user.passwordHash, user.displayName, user.createdAt);
+  }
+
+  async validatePassword(username: string, password: string): Promise<User | null> {
+    const user = await this.getUserByUsername(username);
+    if (!user) return null;
+    const hash = crypto.createHash('sha256').update(password).digest('hex');
+    return hash === user.passwordHash ? user : null;
+  }
+
+  async getWorkspacesByUser(userId: string): Promise<Workspace[]> {
+    return this.getDb().prepare('SELECT * FROM workspaces WHERE userId = ? ORDER BY createdAt ASC').all(userId) as Workspace[];
   }
 }

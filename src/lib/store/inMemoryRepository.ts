@@ -1,4 +1,5 @@
-import { MemoryEvent, Entity, Relation, Source, Tag, QueryLog, ConversationMessage, Workspace } from '@/types';
+import crypto from 'crypto';
+import { MemoryEvent, Entity, Relation, Source, Tag, QueryLog, ConversationMessage, Workspace, User } from '@/types';
 import { IMemoryRepository } from './interfaces';
 
 export class InMemoryRepository implements IMemoryRepository {
@@ -10,6 +11,7 @@ export class InMemoryRepository implements IMemoryRepository {
   private queryLogs: Map<string, QueryLog> = new Map();
   private conversations: Map<string, ConversationMessage[]> = new Map();
   private workspaces: Map<string, Workspace> = new Map();
+  private users: Map<string, User> = new Map();
   private workspaceId: string | undefined;
 
   async initialize(): Promise<void> {}
@@ -207,5 +209,26 @@ export class InMemoryRepository implements IMemoryRepository {
     for (const [key, e] of this.entities) { if ((e as any).workspaceId === id) this.entities.delete(key); }
     for (const [key, s] of this.sources) { if ((s as any).workspaceId === id) this.sources.delete(key); }
     for (const [key] of this.tags) { if (key.startsWith(`${id}:`)) this.tags.delete(key); }
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find((u) => u.username === username);
+  }
+
+  async createUser(user: User): Promise<void> {
+    this.users.set(user.id, user);
+  }
+
+  async validatePassword(username: string, password: string): Promise<User | null> {
+    const user = await this.getUserByUsername(username);
+    if (!user) return null;
+    const hash = crypto.createHash('sha256').update(password).digest('hex');
+    return hash === user.passwordHash ? user : null;
+  }
+
+  async getWorkspacesByUser(userId: string): Promise<Workspace[]> {
+    return Array.from(this.workspaces.values()).filter((w) => w.userId === userId).sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
   }
 }

@@ -104,7 +104,23 @@ Answer the question based on the memory events above. Cite sources as [1], [2], 
   await mem.addConversationMessage(convId, { role: 'user', content: query });
 
   await ollamaClient.checkAvailability();
-  const answer = await ollamaClient.generate(userPrompt, systemPrompt);
+
+  let answer: string;
+  let confidence: number;
+  let followUpSuggestions: string[];
+
+  if (ollamaClient.isAvailable()) {
+    answer = await ollamaClient.generate(userPrompt, systemPrompt);
+    confidence = sortedEvents.length > 0
+      ? Math.min(0.95, 0.5 + sortedEvents.length * 0.05 + sortedEvents[0].score * 0.2)
+      : 0.1;
+    followUpSuggestions = FOLLOW_UP_TEMPLATES.filter(() => Math.random() > 0.3).slice(0, 3);
+  } else {
+    const mockResult = ollamaClient.generateMockStructured(userPrompt);
+    answer = mockResult.answer;
+    confidence = mockResult.confidence;
+    followUpSuggestions = mockResult.followUps;
+  }
 
   await mem.addConversationMessage(convId, { role: 'assistant', content: answer });
 
@@ -114,12 +130,6 @@ Answer the question based on the memory events above. Cite sources as [1], [2], 
     summary: e.event.summary.slice(0, 150),
     score: Math.round(e.score * 100) / 100,
   }));
-
-  const confidence = sortedEvents.length > 0
-    ? Math.min(0.95, 0.5 + sortedEvents.length * 0.05 + sortedEvents[0].score * 0.2)
-    : 0.1;
-
-  const followUps = FOLLOW_UP_TEMPLATES.filter(() => Math.random() > 0.3).slice(0, 3);
 
   await mem.addQueryLog({
     id: uuid(),
@@ -134,7 +144,7 @@ Answer the question based on the memory events above. Cite sources as [1], [2], 
     answer,
     references,
     confidence,
-    followUpSuggestions: followUps,
+    followUpSuggestions,
     conversationId: convId,
     aiAvailable: ollamaClient.isAvailable(),
   };

@@ -1,36 +1,26 @@
 import { MemoryEvent } from '@/types';
 import { IVectorRepository } from './interfaces';
-
-const PRISMA_MODULE = ['@', 'prisma', '/', 'client'].join('');
+import { getPool } from './sharedPg';
 
 export class PostgresVectorRepository implements IVectorRepository {
   private initialized = false;
 
   async initialize(): Promise<void> {
-    const { PrismaClient } = await import(PRISMA_MODULE);
-    const client = new PrismaClient();
-    try {
-      await client.$connect();
-      await client.$executeRawUnsafe('CREATE EXTENSION IF NOT EXISTS vector');
-      this.initialized = true;
-    } finally {
-      await client.$disconnect();
-    }
+    const pool = getPool();
+    await pool.query('CREATE EXTENSION IF NOT EXISTS vector');
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS "Embedding" (
+        id TEXT PRIMARY KEY,
+        "eventId" TEXT NOT NULL,
+        vector vector(384),
+        "createdAt" TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    this.initialized = true;
   }
 
   private assertReady(): void {
     if (!this.initialized) throw new Error('PostgresVectorRepository not initialized');
-  }
-
-  private async withClient<T>(fn: (client: any) => Promise<T>): Promise<T> {
-    this.assertReady();
-    const { PrismaClient } = await import(PRISMA_MODULE);
-    const client = new PrismaClient();
-    try {
-      return await fn(client);
-    } finally {
-      await client.$disconnect();
-    }
   }
 
   async embed(text: string): Promise<number[]> {
@@ -68,25 +58,29 @@ export class PostgresVectorRepository implements IVectorRepository {
   }
 
   async indexEvent(event: MemoryEvent, content: string): Promise<void> {
+    this.assertReady();
     const vector = await this.embed(content);
-    return this.withClient((c) => c.$executeRawUnsafe(
-      `INSERT INTO "Embedding" ("id", "eventId", "vector", "createdAt") VALUES ($1, $2, $3::vector, NOW()) ON CONFLICT ("id") DO NOTHING`,
-      `emb-${event.id}`, event.id, `[${vector.join(',')}]`
-    ));
+    const pool = getPool();
+    await pool.query(
+      `INSERT INTO "Embedding" (id, "eventId", vector, "createdAt") VALUES ($1, $2, $3::vector, NOW()) ON CONFLICT (id) DO NOTHING`,
+      [`emb-${event.id}`, event.id, `[${vector.join(',')}]`]
+    );
   }
 
   async search(query: string, topK = 10): Promise<Array<{ eventId: string; score: number }>> {
+    this.assertReady();
     const vector = await this.embed(query);
-    return this.withClient(async (c) => {
-      const rows: any[] = await c.$queryRawUnsafe(
-        `SELECT "eventId", 1 - ("vector" <=> $1::vector) AS score FROM "Embedding" ORDER BY "vector" <=> $1::vector LIMIT $2`,
-        `[${vector.join(',')}]`, topK
-      );
-      return rows.map((r: any) => ({ eventId: r.eventId, score: Number(r.score) }));
-    });
+    const pool = getPool();
+    const { rows } = await pool.query(
+      `SELECT "eventId", 1 - (vector <=> $1::vector) AS score FROM "Embedding" ORDER BY vector <=> $1::vector LIMIT $2`,
+      [`[${vector.join(',')}]`, topK]
+    );
+    return rows.map((r: any) => ({ eventId: r.eventId, score: Number(r.score) }));
   }
 
   async clear(): Promise<void> {
-    return this.withClient((c) => c.$executeRawUnsafe('DELETE FROM "Embedding"'));
+    this.assertReady();
+    const pool = getPool();
+    await pool.query('DELETE FROM "Embedding"');
   }
 }
